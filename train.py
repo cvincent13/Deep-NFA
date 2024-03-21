@@ -42,7 +42,11 @@ class Trainer(object):
 
         # Choose and load model (this paper is finished by one GPU)
         if args.model   == 'DNANet':
-            model       = DNANet(num_classes=1,input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, nb_filter=nb_filter, deep_supervision=args.deep_supervision)
+            model       = DNANet(num_classes=1,input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, 
+                                 nb_filter=nb_filter, deep_supervision=args.deep_supervision)
+        elif args.model == 'DeepNFA':
+            # to be completed
+            pass
 
         model           = model.cuda()
         model.apply(weights_init_xavier)

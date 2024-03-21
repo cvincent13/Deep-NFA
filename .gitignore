@@ -1,3 +1,8 @@
+# Data
+dataset/NUAA-SIRST/images/*.png
+dataset/NUAA-SIRST/masks/*.png
+dataset/NUAA-SIRST/masks/*.xml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

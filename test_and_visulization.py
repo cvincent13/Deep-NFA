@@ -48,6 +48,9 @@ class Trainer(object):
             model       = DNANet(num_classes=1,input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, nb_filter=nb_filter, deep_supervision=args.deep_supervision)
         elif args.model == 'ACM':
             model       = ACM   (args.in_channels, layers=[args.blocks] * 3, fuse_mode=args.fuse_mode, tiny=False, classes=1)
+        elif args.model == 'DeepNFA':
+            # to be completed
+            pass
         model           = model.cuda()
         model.apply(weights_init_xavier)
         print("Model Initializing")
