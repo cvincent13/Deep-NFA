@@ -87,13 +87,18 @@ class Res_CBAM_block(nn.Module):
         out = self.relu(out)
         return out
 
-class DNSC(nn.Module):
-    def __init__(self, input_channels, block, num_blocks, nb_filter, deep_supervision=False):
-        super(DNSC, self).__init__()
+class DNANet(nn.Module):
+    def __init__(self, num_classes, input_channels, block, num_blocks, nb_filter,deep_supervision=False):
+        super(DNANet, self).__init__()
+        self.relu = nn.ReLU(inplace = True)
         self.deep_supervision = deep_supervision
         self.pool  = nn.MaxPool2d(2, 2)
-        self.down  = nn.Upsample(scale_factor=0.5, mode='bilinear', align_corners=True)
         self.up    = nn.Upsample(scale_factor=2,   mode='bilinear', align_corners=True)
+        self.down  = nn.Upsample(scale_factor=0.5, mode='bilinear', align_corners=True)
+
+        self.up_4  = nn.Upsample(scale_factor=4,   mode='bilinear', align_corners=True)
+        self.up_8  = nn.Upsample(scale_factor=8,   mode='bilinear', align_corners=True)
+        self.up_16 = nn.Upsample(scale_factor=16,  mode='bilinear', align_corners=True)
 
         self.conv0_0 = self._make_layer(block, input_channels, nb_filter[0])
         self.conv1_0 = self._make_layer(block, nb_filter[0],  nb_filter[1], num_blocks[0])
@@ -115,6 +120,20 @@ class DNSC(nn.Module):
 
         self.conv0_4 = self._make_layer(block, nb_filter[0]*4 + nb_filter[1], nb_filter[0])
 
+        self.conv0_4_final = self._make_layer(block, nb_filter[0]*5, nb_filter[0])
+
+        self.conv0_4_1x1 = nn.Conv2d(nb_filter[4], nb_filter[0], kernel_size=1, stride=1)
+        self.conv0_3_1x1 = nn.Conv2d(nb_filter[3], nb_filter[0], kernel_size=1, stride=1)
+        self.conv0_2_1x1 = nn.Conv2d(nb_filter[2], nb_filter[0], kernel_size=1, stride=1)
+        self.conv0_1_1x1 = nn.Conv2d(nb_filter[1], nb_filter[0], kernel_size=1, stride=1)
+
+        if self.deep_supervision:
+            self.final1 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
+            self.final2 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
+            self.final3 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
+            self.final4 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
+        else:
+            self.final  = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
 
     def _make_layer(self, block, input_channels,  output_channels, num_blocks=1):
         layers = []
@@ -142,51 +161,6 @@ class DNSC(nn.Module):
         x2_2 = self.conv2_2(torch.cat([x2_0, x2_1, self.up(x3_1),self.down(x1_2)], 1))
         x1_3 = self.conv1_3(torch.cat([x1_0, x1_1, x1_2, self.up(x2_2),self.down(x0_3)], 1))
         x0_4 = self.conv0_4(torch.cat([x0_0, x0_1, x0_2, x0_3, self.up(x1_3)], 1))
-
-        if self.deep_supervision:
-            return [x4_0, x3_1, x2_2, x1_3, x0_4, x0_1, x0_2, x0_3]
-        else:
-            return [x4_0, x3_1, x2_2, x1_3, x0_4]
-
-
-class DNANet(nn.Module):
-    def __init__(self, num_classes, input_channels, block, num_blocks, nb_filter,deep_supervision=False):
-        super(DNANet, self).__init__()
-        self.deep_supervision = deep_supervision
-        self.up    = nn.Upsample(scale_factor=2,   mode='bilinear', align_corners=True)
-        self.up_4  = nn.Upsample(scale_factor=4,   mode='bilinear', align_corners=True)
-        self.up_8  = nn.Upsample(scale_factor=8,   mode='bilinear', align_corners=True)
-        self.up_16 = nn.Upsample(scale_factor=16,  mode='bilinear', align_corners=True)
-
-        self.dnsc = DNSC(input_channels, block, num_blocks, nb_filter, deep_supervision=deep_supervision)
-
-        self.conv0_4_final = self._make_layer(block, nb_filter[0]*5, nb_filter[0])
-
-        self.conv0_4_1x1 = nn.Conv2d(nb_filter[4], nb_filter[0], kernel_size=1, stride=1)
-        self.conv0_3_1x1 = nn.Conv2d(nb_filter[3], nb_filter[0], kernel_size=1, stride=1)
-        self.conv0_2_1x1 = nn.Conv2d(nb_filter[2], nb_filter[0], kernel_size=1, stride=1)
-        self.conv0_1_1x1 = nn.Conv2d(nb_filter[1], nb_filter[0], kernel_size=1, stride=1)
-
-        if self.deep_supervision:
-            self.final1 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
-            self.final2 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
-            self.final3 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
-            self.final4 = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
-        else:
-            self.final  = nn.Conv2d (nb_filter[0], num_classes, kernel_size=1)
-
-    def _make_layer(self, block, input_channels,  output_channels, num_blocks=1):
-        layers = []
-        layers.append(block(input_channels, output_channels))
-        for i in range(num_blocks-1):
-            layers.append(block(output_channels, output_channels))
-        return nn.Sequential(*layers)
-
-    def forward(self, input):
-        if self.deep_supervision:
-            x4_0, x3_1, x2_2, x1_3, x0_4, x0_1, x0_2, x0_3 = self.dnsc(input)
-        else:
-            x4_0, x3_1, x2_2, x1_3, x0_4 = self.dnsc(input)
 
         Final_x0_4 = self.conv0_4_final(
             torch.cat([self.up_16(self.conv0_4_1x1(x4_0)),self.up_8(self.conv0_3_1x1(x3_1)),

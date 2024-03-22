@@ -6,8 +6,9 @@ import  numpy
 class ROCMetric():
     """Computes pixAcc and mIoU metric scores
     """
-    def __init__(self, nclass, bins):  #bin的意义实际上是确定ROC曲线上的threshold取多少个离散值
+    def __init__(self, nclass, bins, sigmoid=True):  #bin的意义实际上是确定ROC曲线上的threshold取多少个离散值
         super(ROCMetric, self).__init__()
+        self.sigmoid = sigmoid
         self.nclass = nclass
         self.bins = bins
         self.tp_arr = np.zeros(self.bins+1)
@@ -21,7 +22,7 @@ class ROCMetric():
         for iBin in range(self.bins+1):
             score_thresh = (iBin + 0.0) / self.bins
             # print(iBin, "-th, score_thresh: ", score_thresh)
-            i_tp, i_pos, i_fp, i_neg,i_class_pos = cal_tp_pos_fp_neg(preds, labels, self.nclass,score_thresh)
+            i_tp, i_pos, i_fp, i_neg,i_class_pos = cal_tp_pos_fp_neg(preds, labels, self.nclass,score_thresh, self.sigmoid)
             self.tp_arr[iBin]   += i_tp
             self.pos_arr[iBin]  += i_pos
             self.fp_arr[iBin]   += i_fp
@@ -147,9 +148,11 @@ class mIoU():
 
 
 
-def cal_tp_pos_fp_neg(output, target, nclass, score_thresh):
-
-    predict = (torch.sigmoid(output) > score_thresh).float()
+def cal_tp_pos_fp_neg(output, target, nclass, score_thresh, sigmoid):
+    if sigmoid:
+        predict = (torch.sigmoid(output) > score_thresh).float()
+    else:
+        predict = (output > score_thresh).float()
     if len(target.shape) == 3:
         target = np.expand_dims(target.float(), axis=1)
     elif len(target.shape) == 4:

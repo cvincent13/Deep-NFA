@@ -5,7 +5,7 @@ dataset/NUAA-SIRST/masks/*.xml
 
 # Results
 result/*/*.tar
-dataset/*/value_results/*
+dataset/*/value_result/*
 dataset/*/visulization_result/*
 
 # Byte-compiled / optimized / DLL files

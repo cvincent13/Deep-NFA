@@ -15,12 +15,13 @@ from model.load_param_data import  load_dataset, load_param
 # model
 from model.model_DNANet import  Res_CBAM_block
 from model.model_DNANet import  DNANet
+from model.model_DeepNFA import DeepNFA
 
 class Trainer(object):
     def __init__(self, args):
         # Initial
         self.args = args
-        self.ROC  = ROCMetric(1, 10)
+        self.ROC  = ROCMetric(1, 10, sigmoid=args.model=='DNANet')
         self.mIoU = mIoU(1)
         self.save_prefix = '_'.join([args.model, args.dataset])
         self.save_dir    = args.save_dir
@@ -45,8 +46,10 @@ class Trainer(object):
             model       = DNANet(num_classes=1,input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, 
                                  nb_filter=nb_filter, deep_supervision=args.deep_supervision)
         elif args.model == 'DeepNFA':
-            # to be completed
-            pass
+            assert args.deep_supervision == False, 'deep_supervision must be false for DeepNFA'
+            model       = DeepNFA(input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, 
+                                 nb_filter=nb_filter, alpha=0.005)
+            
 
         model           = model.cuda()
         model.apply(weights_init_xavier)
@@ -84,7 +87,7 @@ class Trainer(object):
                 loss /= len(preds)
             else:
                pred = self.model(data)
-               loss = SoftIoULoss(pred, labels)
+               loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet')
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -112,7 +115,7 @@ class Trainer(object):
                     pred =preds[-1]
                 else:
                     pred = self.model(data)
-                    loss = SoftIoULoss(pred, labels)
+                    loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet')
                 losses.update(loss.item(), pred.size(0))
                 self.ROC .update(pred, labels)
                 self.mIoU.update(pred, labels)

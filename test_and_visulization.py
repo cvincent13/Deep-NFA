@@ -23,7 +23,7 @@ class Trainer(object):
 
         # Initial
         self.args  = args
-        self.ROC   = ROCMetric(1, args.ROC_thr)
+        self.ROC   = ROCMetric(1, args.ROC_thr, sigmoid=args.model=='DNANet')
         # self.PD_FA = PD_FA(1,255)
         self.PD_FA = PD_FA(1,10)
         self.mIoU  = mIoU(1)
@@ -88,7 +88,7 @@ class Trainer(object):
                     pred =preds[-1]
                 else:
                     pred = self.model(data)
-                    loss = SoftIoULoss(pred, labels)
+                    loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet')
                 save_Pred_GT(pred, labels,target_image_path, val_img_ids, num, args.suffix)
                 num += 1
 

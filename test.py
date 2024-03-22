@@ -22,7 +22,7 @@ class Trainer(object):
 
         # Initial
         self.args  = args
-        self.ROC   = ROCMetric(1, args.ROC_thr)
+        self.ROC   = ROCMetric(1, args.ROC_thr, sigmoid=args.model=='DNANet')
         self.PD_FA = PD_FA(1,args.ROC_thr)
         self.mIoU  = mIoU(1)
         self.save_prefix = '_'.join([args.model, args.dataset])
@@ -77,7 +77,7 @@ class Trainer(object):
                     pred =preds[-1]
                 else:
                     pred = self.model(data)
-                    loss = SoftIoULoss(pred, labels)
+                    loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet')
                 num += 1
 
                 losses.    update(loss.item(), pred.size(0))

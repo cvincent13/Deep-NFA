@@ -2,9 +2,10 @@ import torch.nn as nn
 import numpy as np
 import  torch
 
-def SoftIoULoss( pred, target):
+def SoftIoULoss( pred, target, sigmoid=True):
         # Old One
-        pred = torch.sigmoid(pred)
+        if sigmoid:
+            pred = torch.sigmoid(pred)
         smooth = 1
 
         # print("pred.shape: ", pred.shape)
