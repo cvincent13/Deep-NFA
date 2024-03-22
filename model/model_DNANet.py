@@ -93,6 +93,7 @@ class DNSC(nn.Module):
         self.deep_supervision = deep_supervision
         self.pool  = nn.MaxPool2d(2, 2)
         self.down  = nn.Upsample(scale_factor=0.5, mode='bilinear', align_corners=True)
+        self.up    = nn.Upsample(scale_factor=2,   mode='bilinear', align_corners=True)
 
         self.conv0_0 = self._make_layer(block, input_channels, nb_filter[0])
         self.conv1_0 = self._make_layer(block, nb_filter[0],  nb_filter[1], num_blocks[0])
@@ -157,7 +158,7 @@ class DNANet(nn.Module):
         self.up_8  = nn.Upsample(scale_factor=8,   mode='bilinear', align_corners=True)
         self.up_16 = nn.Upsample(scale_factor=16,  mode='bilinear', align_corners=True)
 
-        self.dnsc = DNSC(input_channels, block, num_blocks, nb_filter)
+        self.dnsc = DNSC(input_channels, block, num_blocks, nb_filter, deep_supervision=deep_supervision)
 
         self.conv0_4_final = self._make_layer(block, nb_filter[0]*5, nb_filter[0])
 

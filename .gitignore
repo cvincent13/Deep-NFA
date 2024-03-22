@@ -3,6 +3,11 @@ dataset/NUAA-SIRST/images/*.png
 dataset/NUAA-SIRST/masks/*.png
 dataset/NUAA-SIRST/masks/*.xml
 
+# Results
+result/*/*.tar
+dataset/*/value_results/*
+dataset/*/visulization_result/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
