@@ -61,9 +61,6 @@ def ln_gamma_approx(a, x):
     return (a-1)*torch.log(x+1e-8) - x + torch.log(1 + (a-1)/(x+1e-8) + (a-1)*(a-2)/(torch.pow(x,2)+1e-8))
 
 def significance_score(x, n_pixels, n_channels):
-    # Covariance matrix with diagonal assumption
-    #sigma = torch.std(x, dim=(-1,-2), keepdim=True)
-    #return torch.relu(torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(x/torch.sqrt(sigma+1e-8),2).sum(1))/2))
     return torch.relu(torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(x,2).sum(1))/2))
 
 class Significance(nn.Module):

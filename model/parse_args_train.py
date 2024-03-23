@@ -15,6 +15,10 @@ def parse_args():
     # parameter only for DeepNFA
     parser.add_argument('--alpha', type=float, default=0.0005, help='Alpha parameter for the SIGMalpha activation function')
 
+    # Threshold for binarization
+    parser.add_argument('--binarization_threshold', type=float, default=0.13, 
+                        help='Threshold for binarization. Should be 0 for DNANet and SIGMalpha(500) for DeepNFA, which is 0.13 for alpha=0.0005')
+
 
     # data and pre-process
     parser.add_argument('--dataset', type=str, default='NUDT-SIRST',
