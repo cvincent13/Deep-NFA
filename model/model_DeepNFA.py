@@ -24,6 +24,7 @@ class NFABlock(nn.Module):
         return out
     
 
+# to be completed
 class SpatialNFABlock(nn.Module):
     def __init__(self, n_channels):
         super().__init__()
@@ -57,12 +58,13 @@ class SASABlock(nn.Module):
     
 
 def ln_gamma_approx(a, x):
-    return (a-1)*torch.log(x) - x + torch.log(1 + (a-1)/(x+1e-8) + (a-1)*(a-2)/(torch.pow(x,2)+1e-8))
+    return (a-1)*torch.log(x+1e-8) - x + torch.log(1 + (a-1)/(x+1e-8) + (a-1)*(a-2)/(torch.pow(x,2)+1e-8))
 
 def significance_score(x, n_pixels, n_channels):
     # Covariance matrix with diagonal assumption
-    sigma = torch.std(x, dim=(-1,-2), keepdim=True)
-    return torch.clamp(torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(x/torch.sqrt(sigma+1e-8),2).sum(1))/2), min=0.)
+    #sigma = torch.std(x, dim=(-1,-2), keepdim=True)
+    #return torch.relu(torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(x/torch.sqrt(sigma+1e-8),2).sum(1))/2))
+    return torch.relu(torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(x,2).sum(1))/2))
 
 class Significance(nn.Module):
     def __init__(self):
@@ -187,7 +189,6 @@ class DeepNFA(nn.Module):
 
     def forward(self, input, visualization=False):
         x4_0, x3_1, x2_2, x1_3, x0_4 = self.backbone(input)
-
         sign_scores_1 = self.nfa_block_1(x0_4)
         sign_scores_2 = self.up(self.nfa_block_2(x1_3))
         sign_scores_3 = self.up_4(self.nfa_block_3(x2_2))
@@ -197,7 +198,7 @@ class DeepNFA(nn.Module):
         sign_scores = torch.cat([sign_scores_1, sign_scores_2, sign_scores_3, sign_scores_4, sign_scores_5], dim=1)
         sign_scores_weighted = self.eca_block(sign_scores)
 
-        significance = sign_scores_weighted.max(dim=1)[0]
+        significance = sign_scores_weighted.mean(dim=1, keepdim=True)#[0]
         significance = self.sigm_alpha(significance)
 
         if visualization:

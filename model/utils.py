@@ -343,9 +343,9 @@ def make_visulization_dir(target_image_path, target_dir):
         shutil.rmtree(target_dir)  # 删除目录，包括目录下的所有文件
     os.mkdir(target_dir)
 
-def save_Pred_GT(pred, labels, target_image_path, val_img_ids, num, suffix):
+def save_Pred_GT(pred, labels, binarization_threshold, target_image_path, val_img_ids, num, suffix):
 
-    predsss = np.array((pred > 0).cpu()).astype('int64') * 255
+    predsss = np.array((pred > binarization_threshold).cpu()).astype('int64') * 255
     predsss = np.uint8(predsss)
     labelsss = labels * 255
     labelsss = np.uint8(labelsss.cpu())
@@ -356,9 +356,9 @@ def save_Pred_GT(pred, labels, target_image_path, val_img_ids, num, suffix):
     img.save(target_image_path + '/' + '%s_GT' % (val_img_ids[num]) + suffix)
 
 
-def save_Pred_GT_visulize(pred, img_demo_dir, img_demo_index, suffix):
+def save_Pred_GT_visulize(pred, binarization_threshold, img_demo_dir, img_demo_index, suffix):
 
-    predsss = np.array((pred > 0).cpu()).astype('int64') * 255
+    predsss = np.array((pred > binarization_threshold).cpu()).astype('int64') * 255
     predsss = np.uint8(predsss)
 
     img = Image.fromarray(predsss.reshape(256, 256))
@@ -381,9 +381,9 @@ def save_Pred_GT_visulize(pred, img_demo_dir, img_demo_index, suffix):
 
 
 
-def save_and_visulize_demo(pred, labels, target_image_path, val_img_ids, num, suffix):
+def save_and_visulize_demo(pred, labels, binarization_threshold, target_image_path, val_img_ids, num, suffix):
 
-    predsss = np.array((pred > 0).cpu()).astype('int64') * 255
+    predsss = np.array((pred > binarization_threshold).cpu()).astype('int64') * 255
     predsss = np.uint8(predsss)
     labelsss = labels * 255
     labelsss = np.uint8(labelsss.cpu())

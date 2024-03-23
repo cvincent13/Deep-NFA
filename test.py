@@ -24,7 +24,7 @@ class Trainer(object):
         self.args  = args
         self.ROC   = ROCMetric(1, args.ROC_thr, sigmoid=args.model=='DNANet')
         self.PD_FA = PD_FA(1,args.ROC_thr)
-        self.mIoU  = mIoU(1)
+        self.mIoU  = mIoU(1, args.binarization_threshold)
         self.save_prefix = '_'.join([args.model, args.dataset])
         nb_filter, num_blocks = load_param(args.channel_size, args.backbone)
 

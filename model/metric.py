@@ -115,16 +115,17 @@ class PD_FA():
 
 class mIoU():
 
-    def __init__(self, nclass):
+    def __init__(self, nclass, binarization_threshold):
         super(mIoU, self).__init__()
         self.nclass = nclass
+        self.binarization_threshold = binarization_threshold
         self.reset()
 
     def update(self, preds, labels):
         # print('come_ininin')
 
-        correct, labeled = batch_pix_accuracy(preds, labels)
-        inter, union = batch_intersection_union(preds, labels, self.nclass)
+        correct, labeled = batch_pix_accuracy(preds, labels, self.binarization_threshold)
+        inter, union = batch_intersection_union(preds, labels, self.nclass, self.binarization_threshold)
         self.total_correct += correct
         self.total_label += labeled
         self.total_inter += inter
@@ -172,7 +173,7 @@ def cal_tp_pos_fp_neg(output, target, nclass, score_thresh, sigmoid):
 
     return tp, pos, fp, neg, class_pos
 
-def batch_pix_accuracy(output, target):
+def batch_pix_accuracy(output, target, binarization_threshold):
 
     if len(target.shape) == 3:
         target = np.expand_dims(target.float(), axis=1)
@@ -182,7 +183,7 @@ def batch_pix_accuracy(output, target):
         raise ValueError("Unknown target dimension")
 
     assert output.shape == target.shape, "Predict and Label Shape Don't Match"
-    predict = (output > 0).float()
+    predict = (output > binarization_threshold).float()
     pixel_labeled = (target > 0).float().sum()
     pixel_correct = (((predict == target).float())*((target > 0)).float()).sum()
 
@@ -192,12 +193,12 @@ def batch_pix_accuracy(output, target):
     return pixel_correct, pixel_labeled
 
 
-def batch_intersection_union(output, target, nclass):
+def batch_intersection_union(output, target, nclass, binarization_threshold):
 
     mini = 1
     maxi = 1
     nbins = 1
-    predict = (output > 0).float()
+    predict = (output > binarization_threshold).float()
     if len(target.shape) == 3:
         target = np.expand_dims(target.float(), axis=1)
     elif len(target.shape) == 4:

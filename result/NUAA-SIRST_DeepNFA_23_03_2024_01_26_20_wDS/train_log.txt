@@ -1,0 +1,25 @@
+time:--23/03/2024 01:26:20
+model:--DeepNFA
+channel_size:--three
+backbone:--resnet_18
+deep_supervision:--False
+dataset:--NUAA-SIRST
+mode:--TXT
+test_size:--0.5
+root:--dataset/
+suffix:--.png
+split_method:--60_40
+workers:--4
+in_channels:--3
+base_size:--256
+crop_size:--256
+epochs:--1000
+start_epoch:--0
+train_batch_size:--8
+test_batch_size:--8
+min_lr:--1e-05
+optimizer:--Adagrad
+scheduler:--CosineAnnealingLR
+lr:--0.03
+gpus:--0
+save_dir:--NUAA-SIRST_DeepNFA_23_03_2024_01_26_20_wDS

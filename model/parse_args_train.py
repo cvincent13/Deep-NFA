@@ -12,6 +12,8 @@ def parse_args():
     parser.add_argument('--backbone', type=str, default='resnet_18',
                         help='vgg10, resnet_10,  resnet_18,  resnet_34 ')
     parser.add_argument('--deep_supervision', type=str, default='True', help='True or False (model==DNANet)')
+    # parameter only for DeepNFA
+    parser.add_argument('--alpha', type=float, default=0.0005, help='Alpha parameter for the SIGMalpha activation function')
 
 
     # data and pre-process

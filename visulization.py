@@ -15,6 +15,7 @@ from model.load_param_data import  load_dataset, load_param
 # Model
 from model.model_DNANet import  Res_CBAM_block
 from model.model_DNANet import  DNANet
+from model.model_DeepNFA import DeepNFA
 
 class Trainer(object):
     def __init__(self, args):
@@ -23,6 +24,7 @@ class Trainer(object):
         self.args  = args
         self.save_prefix = '_'.join([args.model, args.dataset])
         nb_filter, num_blocks = load_param(args.channel_size, args.backbone)
+        self.deep_supervision = args.deep_supervision == 'True'
 
         # Read image index from TXT
         if args.mode    == 'TXT':
@@ -38,10 +40,11 @@ class Trainer(object):
 
         # Choose and load model (this paper is finished by one GPU)
         if args.model   == 'DNANet':
-            model       = DNANet(num_classes=1,input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, nb_filter=nb_filter, deep_supervision=args.deep_supervision)
+            model       = DNANet(num_classes=1,input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, nb_filter=nb_filter, deep_supervision=self.deep_supervision)
         elif args.model == 'DeepNFA':
-            # to be completed
-            pass
+            assert not self.deep_supervision, 'deep_supervision must be false for DeepNFA'
+            model       = DeepNFA(input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, 
+                                 nb_filter=nb_filter, alpha=args.alpha)
         model           = model.cuda()
         model.apply(weights_init_xavier)
         print("Model Initializing")
@@ -65,12 +68,12 @@ class Trainer(object):
             for i, ( data, labels) in enumerate(tbar):
                 data = data.cuda()
                 labels = labels.cuda()
-                if args.deep_supervision == 'True':
+                if self.deep_supervision:
                     preds = self.model(data)
                     pred =preds[-1]
                 else:
                     pred = self.model(data)
-                save_Pred_GT(pred, labels,visulization_path, val_img_ids, num, args.suffix)
+                save_Pred_GT(pred, labels, args.binarization_threshold, visulization_path, val_img_ids, num, args.suffix)
                 num += 1
 
             total_visulization_generation(dataset_dir, args.mode, test_txt, args.suffix, visulization_path, visulization_fuse_path)

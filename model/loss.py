@@ -23,6 +23,11 @@ def SoftIoULoss( pred, target, sigmoid=True):
 
         return loss
 
+def total_variation_loss(pred):
+    dx = torch.abs(pred[:, :, :, :-1] - pred[:, :, :, 1:])
+    dy = torch.abs(pred[:, :, :-1, :] - pred[:, :, 1:, :])
+    return torch.mean(dx) + torch.mean(dy)
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 

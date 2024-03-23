@@ -22,10 +22,11 @@ class Trainer(object):
         # Initial
         self.args = args
         self.ROC  = ROCMetric(1, 10, sigmoid=args.model=='DNANet')
-        self.mIoU = mIoU(1)
+        self.mIoU = mIoU(1, args.binarization_threshold)
         self.save_prefix = '_'.join([args.model, args.dataset])
         self.save_dir    = args.save_dir
         nb_filter, num_blocks = load_param(args.channel_size, args.backbone)
+        self.deep_supervision = args.deep_supervision == 'True'
 
         # Read image index from TXT
         if args.mode == 'TXT':
@@ -44,11 +45,11 @@ class Trainer(object):
         # Choose and load model (this paper is finished by one GPU)
         if args.model   == 'DNANet':
             model       = DNANet(num_classes=1,input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, 
-                                 nb_filter=nb_filter, deep_supervision=args.deep_supervision)
+                                 nb_filter=nb_filter, deep_supervision=self.deep_supervision)
         elif args.model == 'DeepNFA':
-            assert args.deep_supervision == False, 'deep_supervision must be false for DeepNFA'
+            assert not self.deep_supervision, 'deep_supervision must be false for DeepNFA'
             model       = DeepNFA(input_channels=args.in_channels, block=Res_CBAM_block, num_blocks=num_blocks, 
-                                 nb_filter=nb_filter, alpha=0.005)
+                                 nb_filter=nb_filter, alpha=args.alpha)
             
 
         model           = model.cuda()
@@ -65,6 +66,8 @@ class Trainer(object):
             self.scheduler  = lr_scheduler.CosineAnnealingLR( self.optimizer, T_max=args.epochs, eta_min=args.min_lr)
         self.scheduler.step()
 
+        self.lambda_TV = 0.001
+
         # Evaluation metrics
         self.best_iou       = 0
         self.best_recall    = [0,0,0,0,0,0,0,0,0,0,0]
@@ -79,7 +82,7 @@ class Trainer(object):
         for i, ( data, labels) in enumerate(tbar):
             data   = data.cuda()
             labels = labels.cuda()
-            if args.deep_supervision == 'True':
+            if self.deep_supervision:
                 preds= self.model(data)
                 loss = 0
                 for pred in preds:
@@ -87,7 +90,7 @@ class Trainer(object):
                 loss /= len(preds)
             else:
                pred = self.model(data)
-               loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet')
+               loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet') + self.lambda_TV*total_variation_loss(pred)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -106,7 +109,7 @@ class Trainer(object):
             for i, ( data, labels) in enumerate(tbar):
                 data = data.cuda()
                 labels = labels.cuda()
-                if args.deep_supervision == 'True':
+                if self.deep_supervision:
                     preds = self.model(data)
                     loss = 0
                     for pred in preds:
@@ -115,7 +118,7 @@ class Trainer(object):
                     pred =preds[-1]
                 else:
                     pred = self.model(data)
-                    loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet')
+                    loss = SoftIoULoss(pred, labels, sigmoid=args.model=='DNANet') + self.lambda_TV*total_variation_loss(pred)
                 losses.update(loss.item(), pred.size(0))
                 self.ROC .update(pred, labels)
                 self.mIoU.update(pred, labels)
