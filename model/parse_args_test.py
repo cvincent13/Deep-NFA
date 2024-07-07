@@ -5,7 +5,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Dense_Nested_Attention_Network_For_SIRST')
     # choose model
     parser.add_argument('--model', type=str, default='DNANet',
-                        help='model name: DNANet')
+                        help='model name: DNANet or DeepNFA')
 
     # parameter for DNANet
     parser.add_argument('--channel_size', type=str, default='three',

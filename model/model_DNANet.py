@@ -142,7 +142,7 @@ class DNANet(nn.Module):
             layers.append(block(output_channels, output_channels))
         return nn.Sequential(*layers)
 
-    def forward(self, input):
+    def forward(self, input, visualization=False):
         x0_0 = self.conv0_0(input)
         x1_0 = self.conv1_0(self.pool(x0_0))
         x0_1 = self.conv0_1(torch.cat([x0_0, self.up(x1_0)], 1))
@@ -162,17 +162,25 @@ class DNANet(nn.Module):
         x1_3 = self.conv1_3(torch.cat([x1_0, x1_1, x1_2, self.up(x2_2),self.down(x0_3)], 1))
         x0_4 = self.conv0_4(torch.cat([x0_0, x0_1, x0_2, x0_3, self.up(x1_3)], 1))
 
+        features = [x0_4.detach().cpu().numpy(), x1_3.detach().cpu().numpy(), x2_2.detach().cpu().numpy(), 
+                    x3_1.detach().cpu().numpy(), x4_0.detach().cpu().numpy()]
+
         Final_x0_4 = self.conv0_4_final(
             torch.cat([self.up_16(self.conv0_4_1x1(x4_0)),self.up_8(self.conv0_3_1x1(x3_1)),
-                       self.up_4 (self.conv0_2_1x1(x2_2)),self.up  (self.conv0_1_1x1(x1_3)), x0_4], 1))
+                       self.up_4(self.conv0_2_1x1(x2_2)),self.up(self.conv0_1_1x1(x1_3)), x0_4], 1))
 
         if self.deep_supervision:
             output1 = self.final1(x0_1)
             output2 = self.final2(x0_2)
             output3 = self.final3(x0_3)
             output4 = self.final4(Final_x0_4)
+            if visualization:
+                return [output1, output2, output3, output4], features
             return [output1, output2, output3, output4]
         else:
             output = self.final(Final_x0_4)
+            if visualization:
+                return output, features
             return output
+        
 

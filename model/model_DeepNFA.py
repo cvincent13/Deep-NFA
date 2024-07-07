@@ -14,14 +14,14 @@ class NFABlock(nn.Module):
         self.significance = Significance()
 
     def forward(self, x):
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.significance(out).unsqueeze(1)
-        return out
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu(x)
+        out = self.significance(x).unsqueeze(1)
+        return out, x
     
 
 # to be completed
@@ -57,11 +57,23 @@ class SASABlock(nn.Module):
         return x
     
 
+#def ln_gamma_approx(a, x):
+#    return (a-1)*torch.log(x) - x + torch.log(1 + (a-1)/(x) + (a-1)*(a-2)/(torch.pow(x,2)))
+
+#def significance_score(x, n_pixels, n_channels):
+#    return torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(torch.clamp(x, min=torch.sqrt(n_channels).item()),2).sum(1))/2)
+
+#def ln_gamma_approx(a, x):
+#    return (a-1)*torch.log(x+1e-8) - x + torch.log(1 + (a-1)/(x+1e-8) + (a-1)*(a-2)/(torch.pow(x+1e-8,2)))
+
+#def significance_score(x, n_pixels, n_channels):
+#    return torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(x,2).sum(1))/2)
+
 def ln_gamma_approx(a, x):
     return (a-1)*torch.log(x+1e-8) - x + torch.log(1 + (a-1)/(x+1e-8) + (a-1)*(a-2)/(torch.pow(x,2)+1e-8))
 
 def significance_score(x, n_pixels, n_channels):
-    return torch.relu(torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.pow(x,2).sum(1))/2))
+    return torch.lgamma(n_channels/2) -torch.log(n_pixels) - ln_gamma_approx(n_channels/2,(torch.clamp(torch.pow(x,2).sum(1), min=n_channels.item()))/2)
 
 class Significance(nn.Module):
     def __init__(self):
@@ -97,7 +109,7 @@ class ECABlock(nn.Module):
         y = self.avg_pool(x)
         y = self.conv(y.squeeze(-1).transpose(-1, -2)).transpose(-1, -2).unsqueeze(-1)
         y = self.sigmoid(y)
-        return x * y.expand_as(x)    
+        return x * y.expand_as(x), y
     
 
 class DNSC(nn.Module):
@@ -186,19 +198,26 @@ class DeepNFA(nn.Module):
 
     def forward(self, input, visualization=False):
         x4_0, x3_1, x2_2, x1_3, x0_4 = self.backbone(input)
-        sign_scores_1 = self.nfa_block_1(x0_4)
-        sign_scores_2 = self.up(self.nfa_block_2(x1_3))
-        sign_scores_3 = self.up_4(self.nfa_block_3(x2_2))
-        sign_scores_4 = self.up_8(self.nfa_block_4(x3_1))
-        sign_scores_5 = self.up_16(self.nfa_block_5(x4_0))
+        sign_scores_1, features1 = self.nfa_block_1(x0_4)
+        sign_scores_2, features2 = self.nfa_block_2(x1_3)
+        sign_scores_2 = self.up(sign_scores_2)
+        sign_scores_3, features3 = self.nfa_block_3(x2_2)
+        sign_scores_3 = self.up_4(sign_scores_3)
+        sign_scores_4, features4 = self.nfa_block_4(x3_1)
+        sign_scores_4 = self.up_8(sign_scores_4)
+        sign_scores_5, features5 = self.nfa_block_5(x4_0)
+        sign_scores_5 = self.up_16(sign_scores_5)
+        features = [features1.detach().cpu().numpy(), features2.detach().cpu().numpy(), features3.detach().cpu().numpy(),
+                     features4.detach().cpu().numpy(), features5.detach().cpu().numpy()]
 
         sign_scores = torch.cat([sign_scores_1, sign_scores_2, sign_scores_3, sign_scores_4, sign_scores_5], dim=1)
-        sign_scores_weighted = self.eca_block(sign_scores)
+        sign_scores_weighted, weights = self.eca_block(sign_scores)
 
-        significance = sign_scores_weighted.mean(dim=1, keepdim=True)#[0]
+        significance = sign_scores_weighted.mean(dim=1, keepdim=True)
+        s_out = significance.detach().cpu().numpy()
         significance = self.sigm_alpha(significance)
 
         if visualization:
-            return significance, sign_scores_weighted.detach().cpu().numpy(), sign_scores.detach().cpu().numpy()
+            return significance, sign_scores_weighted.detach().cpu().numpy(), sign_scores.detach().cpu().numpy(), weights.detach().cpu().numpy(), features
         else:
-            return significance
+            return significance, s_out
